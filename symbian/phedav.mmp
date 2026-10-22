@@ -131,6 +131,6 @@ SOURCE			x509write_csr.c
 
 STATICLIBRARY	libcrt0.lib
 LIBRARY			libc.lib
-LIBRARY			euser.lib hal.lib efsrv.lib estor.lib cntmodel.lib versit.lib calinterimapi.lib
+LIBRARY			euser.lib hal.lib efsrv.lib estor.lib cntmodel.lib versit.lib calinterimapi.lib bafl.lib
 
 SMPSAFE

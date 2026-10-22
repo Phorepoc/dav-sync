@@ -30,6 +30,11 @@ int contacts_open(const char *dbname);   /* NULL = the default (real) database *
 void contacts_close(void);
 phedav_local contacts_local(void);
 
+/* calendar.cpp: dbname = calendar file, e.g. c:phedavtest.cal (created if missing); NULL = the default calendar */
+int calendar_open(const char *dbname);
+void calendar_close(void);
+phedav_local calendar_local(void);
+
 #ifdef __cplusplus
 }
 #endif

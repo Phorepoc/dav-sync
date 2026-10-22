@@ -44,7 +44,7 @@ static int run(int argc, char **argv)
 	int r, kind, pick = 0, i;
 	const char *what = argc > 4 ? argv[4] : "contacts";
 	const char *filter = NULL, *dbname = NULL;
-	int real_db = 0;
+	int real_db = 0, cal;
 	for (i = 5; i < argc; i++) {
 		if (!strcmp(argv[i], "--db") && i + 1 < argc) dbname = argv[++i];
 		else if (!strcmp(argv[i], "--real-db")) real_db = 1;
@@ -64,12 +64,10 @@ static int run(int argc, char **argv)
 		return 2;
 	}
 	if (dbname && real_db) { printf("REFUSED: --db and --real-db together\n"); return 2; }
-	printf("database: %s\n", dbname ? dbname : "THE REAL DEFAULT DATABASE");
-	if (!strcmp(what, "calendar")) {
-		printf("calendar sync is not implemented yet (contacts only in this build)\n");
-		return 3;
-	}
-	kind = PHEDAV_CARD;
+	printf("%s database: %s\n", what, dbname ? dbname : "THE REAL DEFAULT DATABASE");
+	cal = !strcmp(what, "calendar");
+	if (!cal && strcmp(what, "contacts")) { printf("unknown data type %s\n", what); return 2; }
+	kind = cal ? PHEDAV_CAL : PHEDAV_CARD;
 	c = (phedav *)calloc(1, sizeof *c);
 	item = (char *)malloc(ITEM_BUF);
 	work = (char *)malloc(WORK_BUF);
@@ -91,15 +89,15 @@ static int run(int argc, char **argv)
 	printf("syncing %s\n", f->col[pick].href);
 
 	if (fstore_open(f->col[pick].href, dbname)) { printf("cannot open the state file\n"); return 6; }
-	if (contacts_open(dbname)) { fstore_close(); return 7; }
+	if (cal ? calendar_open(dbname) : contacts_open(dbname)) { fstore_close(); return 7; }
 	store = fstore_store();
-	local = contacts_local();
+	local = cal ? calendar_local() : contacts_local();
 	memset(&opt, 0, sizeof opt);
 	r = phedav_sync(c, &f->col[pick], &store, &local, &opt, &st);
 	printf("sync: result %d (http %d) mode=%s%s\n", r, c->status, st.mode, st.token_expired ? " [token expired]" : "");
 	printf("  down +%d ~%d -%d   up +%d ~%d -%d   conflicts=%d deferred=%d errors=%d   http requests=%d\n",
 	       st.down_new, st.down_mod, st.down_del, st.up_new, st.up_mod, st.up_del, st.conflicts, st.deferred, st.errors, st.http_requests);
-	contacts_close();
+	if (cal) calendar_close(); else contacts_close();
 	fstore_close();
 	phedav_close(c);
 	free(f); free(work); free(item); free(c);

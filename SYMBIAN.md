@@ -109,3 +109,15 @@ phedav.exe <url> <user> <password> [contacts|calendar] [collection-name-filter]
   (needs an mbedTLS config for Open C: no net_sockets, timing, file IO; `MBEDTLS_NO_PLATFORM_ENTROPY` +
   `MBEDTLS_ENTROPY_HARDWARE_ALT`).
 Not run on a phone yet.
+
+### Test safety and the TLS / calendar builds (2026-10-23)
+- The exe REFUSES to run unless `--db <file>` (a separate contacts database or calendar file, created if missing, e.g.
+  `c:phedavtest.cdb`, `c:phedavtest.cal`) or `--real-db` is given. The state file name includes the database name, so a test
+  database never shares state with the real one.
+- TLS: `phedav.mmp` compiles mbedTLS 3.6 with `symbian/phedav_mbedtls_cfg.h` (no net_sockets / timing / file IO / threading /
+  asm, client only, entropy and the millisecond clock from `plat.cpp`). The mbedTLS sources are an external dependency not kept
+  in this repo: unpack mbedtls-3.6.x into `.deps/mbedtls/` (`include/`, `library/`) before building. Trust: `ca.pem` and/or
+  `pin.txt` in `C:\data\phedav\`; with neither, https is refused. Stack 256 KB.
+- Calendar (`calendar.cpp`): one CalDAV resource = one UID group; local id = the iCalendar UID; `CCalIter` enumerates UIDs,
+  `CCalEntryView::FetchL(uid, array)` + `CCalDataExchange::ExportL/ImportL(KUidVCalendar)`, `StoreL`, `DeleteL(CDesC8Array)`.
+  Signature-based change detection, like the contacts adapter. Not run on a phone.

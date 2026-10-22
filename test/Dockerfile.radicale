@@ -1,0 +1,8 @@
+FROM python:3.13-bookworm
+RUN pip install --no-cache-dir radicale==3.5.4 || pip install --no-cache-dir radicale
+RUN mkdir -p /data /etc/radicale
+RUN openssl req -x509 -newkey rsa:2048 -nodes -keyout /etc/radicale/key.pem -out /etc/radicale/cert.pem -days 30 -subj /CN=phe-radicale-tls -addext subjectAltName=DNS:phe-radicale-tls
+COPY radicale.conf /etc/radicale/config
+COPY radicale-tls.conf /etc/radicale/config-tls
+EXPOSE 5232
+CMD ["python3", "-m", "radicale", "--config", "/etc/radicale/config"]

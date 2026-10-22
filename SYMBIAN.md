@@ -89,3 +89,23 @@ fingerprint option for self-hosted servers.
 
 Known limits of v1: Basic auth only (use app passwords; Digest and OAuth are out), no CardDAV groups, no free-busy or
 scheduling (iTIP) inbox, no attachments beyond what fits the item buffer, no WebDAV-Push (polling or a hub-side trigger).
+
+## Status of the first Symbian build (2026-10-23)
+`symbian/` holds a console exe, `phedav.exe`, built for the stock phone (user capabilities NetworkServices, ReadUserData,
+WriteUserData; Open C sockets like phetail; no TLS in this build, https is refused):
+
+```
+phedav.exe <url> <user> <password> [contacts|calendar] [collection-name-filter]
+```
+- `plat.cpp`: log `C:\data\phedav\phedav.log`; access point from `C:\data\phedav\iap.txt` (else phetail's `iap.txt`, else
+  "ASUS"); non-blocking connect with a 20 s limit, `select()` timeouts of 40 s on send and receive; `mbedtls_hardware_poll`
+  from `Math::Random` + `User::FastCounter` + tick count + time (ready for the TLS build).
+- `store.cpp`: journalled state file `C:\data\phedav\state_<hash>.txt` (meta, item rows, contact signatures).
+- `contacts.cpp`: `CContactDatabase::OpenL`, export with `ExportSelectedContactsL(KVersitEntityUidVCard, ..., EUTF8CharSet)`,
+  import with `ImportContactsL(..., EImportSingleContact)`, delete with `DeleteContactL`. Change detection is by signature
+  (hash of the exported vCard stored after the last sync) instead of timestamps: no signature = added, other = modified, a
+  stored id that no longer exists = deleted. This also makes the core's own writes invisible.
+- Calendar: argument accepted, not implemented. TLS: the adapter (`src/phedav_mbedtls.c`) is not part of this build yet
+  (needs an mbedTLS config for Open C: no net_sockets, timing, file IO; `MBEDTLS_NO_PLATFORM_ENTROPY` +
+  `MBEDTLS_ENTROPY_HARDWARE_ALT`).
+Not run on a phone yet.

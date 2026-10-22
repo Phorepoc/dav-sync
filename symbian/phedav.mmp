@@ -1,0 +1,29 @@
+// Copyright The Phorepoc Authors
+// SPDX-License-Identifier: Apache-2.0
+//
+// phedav for Symbian^3 (Open C console exe): CardDAV / CalDAV sync. Logs to C:\data\phedav\phedav.log.
+// User-grantable capabilities only (self-signed SIS).
+TARGET			phedav.exe
+TARGETTYPE		exe
+UID				0x1000007a 0xE7016B70
+SECUREID		0xE7016B70
+VENDORID		0
+CAPABILITY		NetworkServices ReadUserData WriteUserData
+
+EPOCHEAPSIZE	0x100000 0x2000000
+EPOCSTACKSIZE	0x14000
+
+OS_LAYER_SYSTEMINCLUDE_SYMBIAN
+OS_LAYER_LIBC_SYSTEMINCLUDE
+USERINCLUDE		. ../include
+
+SOURCEPATH		../src
+SOURCE			phedav_xml.c phedav_http.c phedav_dav.c phedav_sync.c
+SOURCEPATH		.
+SOURCE			main.cpp plat.cpp store.cpp contacts.cpp
+
+STATICLIBRARY	libcrt0.lib
+LIBRARY			libc.lib
+LIBRARY			euser.lib hal.lib efsrv.lib estor.lib cntmodel.lib versit.lib
+
+SMPSAFE

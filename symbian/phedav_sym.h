@@ -17,7 +17,7 @@ int plat_net_init(void);                       /* default access point (iap.txt)
 phedav_net plat_make_net(void);                /* plain TCP; with PHEDAV_WITH_MBEDTLS also TLS (ca.pem / pin.txt) */
 
 /* store.cpp: journalled file-backed sync state and the per-contact signatures */
-int fstore_open(const char *coll);             /* loads (and compacts) the state of one collection */
+int fstore_open(const char *coll, const char *tag);             /* loads (and compacts) the state of one collection */
 void fstore_close(void);
 phedav_store fstore_store(void);
 int fsig_get(const char *id, unsigned long *sig);                 /* 1 = present */
@@ -26,7 +26,7 @@ void fsig_del(const char *id);
 void fsig_each(int (*cb)(void *ctx, const char *id, unsigned long sig), void *ctx);
 
 /* contacts.cpp */
-int contacts_open(void);
+int contacts_open(const char *dbname);   /* NULL = the default (real) database */
 void contacts_close(void);
 phedav_local contacts_local(void);
 

@@ -26,9 +26,19 @@
 static CContactDatabase *g_db;
 static CBufFlat *g_buf;
 
-int contacts_open(void)
+static void OpenDbL(const char *aName)
 {
-	TRAPD(err, g_db = CContactDatabase::OpenL(); g_buf = CBufFlat::NewL(2048));
+	if (!aName) { g_db = CContactDatabase::OpenL(); return; }
+	TFileName fn;
+	fn.Copy(TPtrC8((const TUint8 *)aName));
+	TRAPD(e, g_db = CContactDatabase::OpenL(fn));
+	if (e == KErrNotFound || e == KErrPathNotFound) { g_db = CContactDatabase::CreateL(fn); printf("contacts: created %s\n", aName); }
+	else User::LeaveIfError(e);
+}
+
+int contacts_open(const char *aDbName)
+{
+	TRAPD(err, OpenDbL(aDbName); g_buf = CBufFlat::NewL(2048));
 	if (err) printf("contacts: open failed %d\n", err);
 	return err;
 }

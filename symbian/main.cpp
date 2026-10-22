@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // phedav.exe -- CardDAV (and later CalDAV) sync client for a Symbian^3 phone. Console exe, user capabilities only.
-//   phedav.exe <url> <user> <password> [contacts|calendar] [collection-name-filter]
+//   phedav.exe <url> <user> <password> [contacts|calendar] --db <file> | --real-db [--filter <name>]
 // Log: C:\data\phedav\phedav.log. State: C:\data\phedav\state_*.txt. Optional files in C:\data\phedav\:
 //   iap.txt (access point name), ca.pem (PEM trust anchors for https), pin.txt (64 hex digits: SHA-256 of the server cert).
 #include <e32base.h>
@@ -43,14 +43,28 @@ static int run(int argc, char **argv)
 	phedav_local local;
 	int r, kind, pick = 0, i;
 	const char *what = argc > 4 ? argv[4] : "contacts";
-	const char *filter = argc > 5 ? argv[5] : NULL;
+	const char *filter = NULL, *dbname = NULL;
+	int real_db = 0;
+	for (i = 5; i < argc; i++) {
+		if (!strcmp(argv[i], "--db") && i + 1 < argc) dbname = argv[++i];
+		else if (!strcmp(argv[i], "--real-db")) real_db = 1;
+		else if (!strcmp(argv[i], "--filter") && i + 1 < argc) filter = argv[++i];
+		else { printf("unknown argument %s\n", argv[i]); return 2; }
+	}
 	time_t now = time(NULL);
 
 	printf("---- phedav %s start %s", PHEDAV_VERSION, ctime(&now));
 	if (argc < 4) {
-		printf("usage: phedav <url> <user> <password> [contacts|calendar] [name-filter]\n");
+		printf("usage: phedav <url> <user> <password> [contacts|calendar] --db <file> | --real-db  [--filter <name>]\n");
 		return 2;
 	}
+	/* SAFETY (test builds): never touch the phone's real contacts unless asked to explicitly */
+	if (!dbname && !real_db) {
+		printf("REFUSED: pass --db <file> (a separate test database, e.g. --db c:phedavtest.cdb) or --real-db\n");
+		return 2;
+	}
+	if (dbname && real_db) { printf("REFUSED: --db and --real-db together\n"); return 2; }
+	printf("database: %s\n", dbname ? dbname : "THE REAL DEFAULT DATABASE");
 	if (!strcmp(what, "calendar")) {
 		printf("calendar sync is not implemented yet (contacts only in this build)\n");
 		return 3;
@@ -76,8 +90,8 @@ static int run(int argc, char **argv)
 	}
 	printf("syncing %s\n", f->col[pick].href);
 
-	if (fstore_open(f->col[pick].href)) { printf("cannot open the state file\n"); return 6; }
-	if (contacts_open()) { fstore_close(); return 7; }
+	if (fstore_open(f->col[pick].href, dbname)) { printf("cannot open the state file\n"); return 6; }
+	if (contacts_open(dbname)) { fstore_close(); return 7; }
 	store = fstore_store();
 	local = contacts_local();
 	memset(&opt, 0, sizeof opt);

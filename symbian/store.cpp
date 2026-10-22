@@ -76,7 +76,7 @@ static void mem_sigdel(const char *id)
 
 static void cp(char *dst, size_t cap, const char *s) { snprintf(dst, cap, "%s", s ? s : ""); }
 
-int fstore_open(const char *coll)
+int fstore_open(const char *coll, const char *tag)
 {
 	unsigned long h = 2166136261UL;
 	const char *p;
@@ -84,6 +84,7 @@ int fstore_open(const char *coll)
 	char line[1200];
 	int i;
 	for (p = coll; *p; p++) { h ^= (unsigned char)*p; h *= 16777619UL; }
+	for (p = tag ? tag : ""; *p; p++) { h ^= (unsigned char)*p; h *= 16777619UL; }
 	snprintf(g_path, sizeof g_path, PHEDAV_DIR "\\state_%08lx.txt", h);
 	g_items = (phedav_item_state *)calloc(MAX_ITEMS, sizeof *g_items);
 	g_sigs = (sigrow *)calloc(MAX_SIGS, sizeof *g_sigs);

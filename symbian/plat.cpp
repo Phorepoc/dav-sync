@@ -241,3 +241,17 @@ extern "C" int mbedtls_hardware_poll(void *data, unsigned char *output, size_t l
 	*olen = len;
 	return 0;
 }
+
+/* ---------- millisecond clock for mbedTLS (MBEDTLS_PLATFORM_MS_TIME_ALT): tick count extended over 32-bit wraps ---------- */
+#ifdef PHEDAV_WITH_MBEDTLS
+#include <mbedtls/platform_time.h>
+extern "C" mbedtls_ms_time_t mbedtls_ms_time(void)
+{
+	static TUint32 last;
+	static TInt64 high;
+	TUint32 now = User::NTickCount();       // 1 ms ticks on current hardware
+	if (now < last) high += (TInt64)1 << 32;
+	last = now;
+	return (mbedtls_ms_time_t)(high + now);
+}
+#endif

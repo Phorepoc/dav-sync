@@ -11,16 +11,123 @@ VENDORID		0
 CAPABILITY		NetworkServices ReadUserData WriteUserData
 
 EPOCHEAPSIZE	0x100000 0x2000000
-EPOCSTACKSIZE	0x14000
+EPOCSTACKSIZE	0x40000
 
 OS_LAYER_SYSTEMINCLUDE_SYMBIAN
 OS_LAYER_LIBC_SYSTEMINCLUDE
-USERINCLUDE		. ../include
+USERINCLUDE		. ../include ../.deps/mbedtls/include ../.deps/mbedtls/library
+MACRO			PHEDAV_WITH_MBEDTLS
+MACRO			MBEDTLS_CONFIG_FILE="\"phedav_mbedtls_cfg.h\""
 
 SOURCEPATH		../src
-SOURCE			phedav_xml.c phedav_http.c phedav_dav.c phedav_sync.c
+SOURCE			phedav_xml.c phedav_http.c phedav_dav.c phedav_sync.c phedav_mbedtls.c
 SOURCEPATH		.
 SOURCE			main.cpp plat.cpp store.cpp contacts.cpp
+
+SOURCEPATH		../.deps/mbedtls/library
+SOURCE			aes.c
+SOURCE			aesce.c
+SOURCE			aesni.c
+SOURCE			aria.c
+SOURCE			asn1parse.c
+SOURCE			asn1write.c
+SOURCE			base64.c
+SOURCE			bignum.c
+SOURCE			bignum_core.c
+SOURCE			bignum_mod.c
+SOURCE			bignum_mod_raw.c
+SOURCE			block_cipher.c
+SOURCE			camellia.c
+SOURCE			ccm.c
+SOURCE			chacha20.c
+SOURCE			chachapoly.c
+SOURCE			cipher.c
+SOURCE			cipher_wrap.c
+SOURCE			cmac.c
+SOURCE			constant_time.c
+SOURCE			ctr_drbg.c
+SOURCE			debug.c
+SOURCE			des.c
+SOURCE			dhm.c
+SOURCE			ecdh.c
+SOURCE			ecdsa.c
+SOURCE			ecjpake.c
+SOURCE			ecp.c
+SOURCE			ecp_curves.c
+SOURCE			ecp_curves_new.c
+SOURCE			entropy.c
+SOURCE			entropy_poll.c
+SOURCE			error.c
+SOURCE			gcm.c
+SOURCE			hkdf.c
+SOURCE			hmac_drbg.c
+SOURCE			lmots.c
+SOURCE			lms.c
+SOURCE			md.c
+SOURCE			md5.c
+SOURCE			memory_buffer_alloc.c
+SOURCE			mps_reader.c
+SOURCE			mps_trace.c
+SOURCE			nist_kw.c
+SOURCE			oid.c
+SOURCE			pem.c
+SOURCE			pk.c
+SOURCE			pk_ecc.c
+SOURCE			pk_wrap.c
+SOURCE			pkcs12.c
+SOURCE			pkcs5.c
+SOURCE			pkcs7.c
+SOURCE			pkparse.c
+SOURCE			pkwrite.c
+SOURCE			platform.c
+SOURCE			platform_util.c
+SOURCE			poly1305.c
+SOURCE			psa_crypto.c
+SOURCE			psa_crypto_aead.c
+SOURCE			psa_crypto_cipher.c
+SOURCE			psa_crypto_client.c
+SOURCE			psa_crypto_driver_wrappers_no_static.c
+SOURCE			psa_crypto_ecp.c
+SOURCE			psa_crypto_ffdh.c
+SOURCE			psa_crypto_hash.c
+SOURCE			psa_crypto_mac.c
+SOURCE			psa_crypto_pake.c
+SOURCE			psa_crypto_rsa.c
+SOURCE			psa_crypto_se.c
+SOURCE			psa_crypto_slot_management.c
+SOURCE			psa_crypto_storage.c
+SOURCE			psa_util.c
+SOURCE			ripemd160.c
+SOURCE			rsa.c
+SOURCE			rsa_alt_helpers.c
+SOURCE			sha1.c
+SOURCE			sha256.c
+SOURCE			sha3.c
+SOURCE			sha512.c
+SOURCE			ssl_cache.c
+SOURCE			ssl_ciphersuites.c
+SOURCE			ssl_client.c
+SOURCE			ssl_cookie.c
+SOURCE			ssl_debug_helpers_generated.c
+SOURCE			ssl_msg.c
+SOURCE			ssl_ticket.c
+SOURCE			ssl_tls.c
+SOURCE			ssl_tls12_client.c
+SOURCE			ssl_tls12_server.c
+SOURCE			ssl_tls13_client.c
+SOURCE			ssl_tls13_generic.c
+SOURCE			ssl_tls13_keys.c
+SOURCE			ssl_tls13_server.c
+SOURCE			version.c
+SOURCE			version_features.c
+SOURCE			x509.c
+SOURCE			x509_create.c
+SOURCE			x509_crl.c
+SOURCE			x509_crt.c
+SOURCE			x509_csr.c
+SOURCE			x509write.c
+SOURCE			x509write_crt.c
+SOURCE			x509write_csr.c
 
 STATICLIBRARY	libcrt0.lib
 LIBRARY			libc.lib

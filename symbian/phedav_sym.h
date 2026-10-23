@@ -25,6 +25,9 @@ void fsig_set(const char *id, unsigned long sig);
 void fsig_del(const char *id);
 void fsig_each(int (*cb)(void *ctx, const char *id, unsigned long sig), void *ctx);
 
+/* guard.cpp: mass-delete guard and --dry-run between the core and the adapters */
+void guard_wrap(phedav_local *lo, phedav_store *st, int dry, int allow_mass, int max_del);
+
 /* contacts.cpp */
 int contacts_open(const char *dbname);   /* NULL = the default (real) database */
 void contacts_close(void);

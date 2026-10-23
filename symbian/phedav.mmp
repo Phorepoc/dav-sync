@@ -22,7 +22,7 @@ MACRO			MBEDTLS_CONFIG_FILE="\"phedav_mbedtls_cfg.h\""
 SOURCEPATH		../src
 SOURCE			phedav_xml.c phedav_http.c phedav_dav.c phedav_sync.c phedav_mbedtls.c
 SOURCEPATH		.
-SOURCE			main.cpp plat.cpp store.cpp contacts.cpp calendar.cpp
+SOURCE			main.cpp plat.cpp store.cpp contacts.cpp calendar.cpp guard.cpp
 
 SOURCEPATH		../.deps/mbedtls/library
 SOURCE			aes.c

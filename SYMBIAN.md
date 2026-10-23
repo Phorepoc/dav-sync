@@ -132,3 +132,10 @@ Not run on a phone yet.
 - **Self-test helper.** `--selftest "add:Name,edit:Name:NewFamily,del:Name,list"` (contacts; calendar: `add:uid:summary`,
   `edit:uid:summary`, `del:uid`, `list`) changes the `--db` test database before the sync, without recording signatures, so the
   sync sees real local changes. `--local-wins` sets the conflict policy to local (default: server wins).
+- **Deletion safety.** `guard.cpp` sits between the core and the adapters. A sync that would delete more than `--max-delete N`
+  (default 5) items, or all of the items the state knows (state of 2 or more), or more than half of them (state of 4 or more), has
+  its deletions refused for that run and logs `guard: REFUSING ...`; `--allow-mass-delete` lifts it. Server-side deletions applied
+  to the phone are limited the same way. `--dry-run` prints the planned uploads and local writes/removals and changes nothing
+  (server, database, sync state). The calendar also re-checks an apparently missing UID several times before reporting a deletion
+  (the Agenda server's `CCalEntryView::NewL(session)` blocks until the index is built, so no race is visible in its source; one
+  false "deleted" was seen once on the x86 image and could not be reproduced).

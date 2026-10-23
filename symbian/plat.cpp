@@ -80,7 +80,7 @@ static int wait_fd(int s, int write, int secs)
 static int raw_open(void *ctx, const char *host, unsigned port)
 {
 	struct sockaddr_in a;
-	int s, fl, r;
+	int s, fl, r, nonblock = 0;
 	(void)ctx;
 	memset(&a, 0, sizeof a);
 	a.sin_family = AF_INET;
@@ -93,24 +93,25 @@ static int raw_open(void *ctx, const char *host, unsigned port)
 	s = socket(AF_INET, SOCK_STREAM, 0);
 	if (s < 0) { printf("plat: socket errno %d\n", errno); return -1; }
 	fl = fcntl(s, F_GETFL, 0);
-	if (fl >= 0 && fcntl(s, F_SETFL, fl | O_NONBLOCK) == 0) {
-		r = connect(s, (struct sockaddr *)&a, sizeof a);
-		if (r != 0 && (errno == EINPROGRESS || errno == EWOULDBLOCK || errno == EALREADY)) {
-			if (wait_fd(s, 1, CONNECT_TIMEOUT_S) > 0) {
-				int err = 0;
-				socklen_t el = sizeof err;
-				getsockopt(s, SOL_SOCKET, SO_ERROR, &err, &el);
-				r = err ? -1 : 0;
-				if (err) errno = err;
-			} else {
-				errno = ETIMEDOUT;
-				r = -1;
-			}
+	if (fl >= 0 && fcntl(s, F_SETFL, fl | O_NONBLOCK) == 0) nonblock = 1;
+	r = connect(s, (struct sockaddr *)&a, sizeof a);
+	if (r != 0 && (errno == EINPROGRESS || errno == EWOULDBLOCK || errno == EALREADY)) {
+		/* Open C (P.I.P.S.): connect() may answer EINPROGRESS even on a socket where O_NONBLOCK could not be set
+		   (the connection is still starting), and select()/SO_ERROR are not a reliable "connected" signal there.
+		   Poll by calling connect() again: 0 or EISCONN = connected, EINPROGRESS/EALREADY = keep waiting. */
+		int waited_ms = 0;
+		r = -1;
+		errno = ETIMEDOUT;
+		while (waited_ms < CONNECT_TIMEOUT_S * 1000) {
+			int rr;
+			usleep(100000);
+			waited_ms += 100;
+			rr = connect(s, (struct sockaddr *)&a, sizeof a);
+			if (rr == 0 || errno == EISCONN) { r = 0; break; }
+			if (errno != EINPROGRESS && errno != EALREADY && errno != EWOULDBLOCK) break;
 		}
-		fcntl(s, F_SETFL, fl);          /* back to blocking: recv/send are guarded by select() */
-	} else {
-		r = connect(s, (struct sockaddr *)&a, sizeof a);
 	}
+	if (nonblock) fcntl(s, F_SETFL, fl);          /* back to blocking: recv/send are guarded by select() */
 	if (r != 0) {
 		printf("plat: connect %s:%u failed errno %d\n", host, port, errno);
 		close(s);

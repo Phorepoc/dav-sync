@@ -201,7 +201,8 @@ static void ImportL(const char *data, size_t len, TBuf8<PHEDAV_ID_MAX> &aUid)
 	TPtrC8 p((const TUint8 *)data, (TInt)len);
 	RDesReadStream rs(p);
 	CleanupClosePushL(rs);
-	g_exch->ImportL(KUidVCalendar, rs, arr);
+	TRAPD(ie, g_exch->ImportL(KUidVCalendar, rs, arr));
+	if (ie) { printf("calendar: parsing the iCalendar failed: %d\n", ie); User::Leave(ie); }
 	CleanupStack::PopAndDestroy();       // rs
 	if (arr.Count() < 1) User::Leave(KErrCorrupt);
 	const TDesC8 &uid = arr[0]->UidL();
@@ -209,7 +210,8 @@ static void ImportL(const char *data, size_t len, TBuf8<PHEDAV_ID_MAX> &aUid)
 	aUid.Copy(uid);
 	TRAP_IGNORE(DeleteUidL(aUid));       // KErrNotFound when it is new
 	TInt ok = 0;
-	g_view->StoreL(arr, ok);
+	TRAPD(se, g_view->StoreL(arr, ok));
+	if (se) { printf("calendar: storing the entries failed: %d\n", se); User::Leave(se); }
 	if (ok < arr.Count()) User::Leave(KErrGeneral);
 	CleanupStack::PopAndDestroy();       // arr
 }

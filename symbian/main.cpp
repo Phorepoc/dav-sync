@@ -43,10 +43,11 @@ static int run(int argc, char **argv)
 	phedav_local local;
 	int r, kind, pick = 0, i;
 	const char *what = argc > 4 ? argv[4] : "contacts";
-	const char *filter = NULL, *dbname = NULL;
+	const char *filter = NULL, *dbname = NULL, *selftest = NULL;
 	int real_db = 0, cal;
 	for (i = 5; i < argc; i++) {
 		if (!strcmp(argv[i], "--db") && i + 1 < argc) dbname = argv[++i];
+		else if (!strcmp(argv[i], "--selftest") && i + 1 < argc) selftest = argv[++i];
 		else if (!strcmp(argv[i], "--real-db")) real_db = 1;
 		else if (!strcmp(argv[i], "--filter") && i + 1 < argc) filter = argv[++i];
 		else { printf("unknown argument %s\n", argv[i]); return 2; }
@@ -90,6 +91,17 @@ static int run(int argc, char **argv)
 
 	if (fstore_open(f->col[pick].href, dbname)) { printf("cannot open the state file\n"); return 6; }
 	if (cal ? calendar_open(dbname) : contacts_open(dbname)) { fstore_close(); return 7; }
+	if (selftest) {      /* --selftest "op:a[:b],op:a[:b],..." runs on the --db TEST database before the sync */
+		char ops[400], *p, *q;
+		if (!dbname) { printf("REFUSED: --selftest needs --db\n"); return 2; }
+		strncpy(ops, selftest, sizeof ops - 1); ops[sizeof ops - 1] = 0;
+		for (p = ops; p && *p; p = q) {
+			char *a, *b = NULL;
+			q = strchr(p, ','); if (q) *q++ = 0;
+			a = strchr(p, ':'); if (a) { *a++ = 0; b = strchr(a, ':'); if (b) *b++ = 0; }
+			if (cal) calendar_selftest(p, a ? a : "", b ? b : ""); else contacts_selftest(p, a ? a : "", b ? b : "");
+		}
+	}
 	store = fstore_store();
 	local = cal ? calendar_local() : contacts_local();
 	memset(&opt, 0, sizeof opt);

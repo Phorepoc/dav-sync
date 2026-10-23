@@ -14,6 +14,8 @@
 #include <cntdb.h>
 #include <cntitem.h>
 #include <cntdef.h>
+#include <cntfield.h>
+#include <cntfldst.h>
 #include <vuid.h>
 #include <vutil.h>
 
@@ -50,6 +52,8 @@ void contacts_close(void)
 	delete g_db;
 	g_db = NULL;
 }
+
+static void FreeCell(TAny *a) { User::Free(a); }
 
 static unsigned long fnv(const TUint8 *p, TInt n)
 {
@@ -153,17 +157,25 @@ static int l_changes(void *ctx, const char *coll, int (*cb)(void *, const char *
 	return 0;
 }
 
+static size_t ToV30(const char *in, size_t len, char *out, size_t cap);
+
 static int l_read(void *ctx, const char *coll, const char *id, char *buf, size_t cap, size_t *len)
 {
 	(void)ctx; (void)coll;
 	TRAPD(err, ExportOneL((TContactItemId)atoi(id)));
 	if (err) return -1;
 	TInt n = g_buf->Size();
-	*len = (size_t)n;
-	if ((size_t)n > cap) return -1;
-	TPtr8 d((TUint8 *)buf, 0, n);
+	char *raw = (char *)User::Alloc(n + 1);
+	char *cv = (char *)User::Alloc(n * 2 + 1024);
+	if (!raw || !cv) { User::Free(raw); User::Free(cv); return -1; }
+	TPtr8 d((TUint8 *)raw, 0, n);
 	g_buf->Read(0, d, n);
-	return 0;
+	raw[n] = 0;
+	size_t cl = ToV30(raw, (size_t)n, cv, (size_t)n * 2 + 1024);
+	int rc = -1;
+	if (cl && cl <= cap) { memcpy(buf, cv, cl); *len = cl; rc = 0; }
+	User::Free(raw); User::Free(cv);
+	return rc;
 }
 
 static void DestroyItems(TAny *a)
@@ -173,9 +185,106 @@ static void DestroyItems(TAny *a)
 	delete items;
 }
 
+/* ---------- text conversions around the Contacts Model's Versit (UTF-8 names) ----------
+   Import: a vCard 3.0 is UTF-8, but Versit reads a property without CHARSET as 8-bit Latin-1 and the name comes out double
+   encoded (u-umlaut as two Latin-1 characters). MarkUtf8 adds ;CHARSET=UTF-8 to every line that holds a byte >= 0x80 and has no CHARSET.
+   Export: Versit writes vCard 2.1 (quoted-printable, bare TYPE words). ToV30 turns that into vCard 3.0 (UTF-8, TYPE=) so
+   servers and other clients read it. The change-detection signature is taken over the raw export, not over this text. */
+static size_t MarkUtf8(const char *in, size_t len, char *out, size_t cap)
+{
+	size_t o = 0, i = 0;
+	while (i < len) {
+		size_t e = i;
+		int high = 0;
+		while (e < len && in[e] != '\n') { if ((unsigned char)in[e] >= 0x80) high = 1; e++; }
+		size_t ll = e - i;
+		const char *colon = (const char *)memchr(in + i, ':', ll);
+		int has_cs = 0;
+		if (colon) { for (const char *q = in + i; q + 7 <= colon; q++) if (!strncmp(q, "CHARSET", 7)) { has_cs = 1; break; } }
+		if (high && colon && !has_cs) {
+			size_t head = (size_t)(colon - (in + i));
+			if (o + ll + 16 >= cap) return 0;
+			memcpy(out + o, in + i, head); o += head;
+			memcpy(out + o, ";CHARSET=UTF-8", 14); o += 14;
+			memcpy(out + o, colon, ll - head); o += ll - head;
+		} else {
+			if (o + ll + 1 >= cap) return 0;
+			memcpy(out + o, in + i, ll); o += ll;
+		}
+		if (e < len) out[o++] = '\n';
+		i = e + 1;
+	}
+	return o;
+}
+
+static int HexVal(int c) { return c >= '0' && c <= '9' ? c - '0' : c >= 'A' && c <= 'F' ? c - 'A' + 10 : c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1; }
+
+static size_t ToV30(const char *in, size_t len, char *out, size_t cap)
+{
+	size_t o = 0, i = 0;
+	while (i < len) {
+		/* one logical line: physical lines joined while a quoted-printable line ends in '=' */
+		char *line = (char *)User::Alloc(len - i + 2);
+		if (!line) return 0;
+		size_t n = 0;
+		int qp = 0;
+		for (;;) {
+			size_t e = i;
+			while (e < len && in[e] != '\n') e++;
+			size_t pl = e - i;
+			if (pl && in[i + pl - 1] == '\r') pl--;
+			memcpy(line + n, in + i, pl); n += pl;
+			i = e + 1;
+			if (n && line[n - 1] == '=' && (memchr(line, ':', n) != NULL) && i < len) {
+				line[n] = 0;
+				const char *c = strchr(line, ':');
+				if (c && (strstr(line, "QUOTED-PRINTABLE") && strstr(line, "QUOTED-PRINTABLE") < c)) { n--; continue; }   /* soft break */
+			}
+			break;
+		}
+		line[n] = 0;
+		const char *colon = strchr(line, ':');
+		if (!colon) { memcpy(out + o, line, n); o += n; out[o++] = '\r'; out[o++] = '\n'; User::Free(line); continue; }
+		if (!strncmp(line, "VERSION:2.1", 11)) { memcpy(out + o, "VERSION:3.0\r\n", 13); o += 13; User::Free(line); continue; }
+		/* head = NAME;param;param */
+		size_t hlen = (size_t)(colon - line);
+		char *head = (char *)User::Alloc(hlen + 1);
+		if (!head) { User::Free(line); return 0; }
+		memcpy(head, line, hlen); head[hlen] = 0;
+		char *save = NULL;
+		char *tok = head;
+		int first = 1;
+		for (;;) {
+			char *semi = strchr(tok, ';');
+			if (semi) *semi = 0;
+			if (first) { size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; first = 0; }
+			else if (!strncmp(tok, "ENCODING=QUOTED-PRINTABLE", 25) || !strncmp(tok, "CHARSET=", 8)) { if (tok[0] == 'E') qp = 1; }
+			else if (strchr(tok, '=')) { out[o++] = ';'; size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; }
+			else if (*tok) { memcpy(out + o, ";TYPE=", 6); o += 6; size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; }
+			if (!semi) break;
+			tok = semi + 1;
+		}
+		(void)save;
+		out[o++] = ':';
+		for (const char *v = colon + 1; *v; v++) {
+			if (qp && *v == '=' && HexVal(v[1]) >= 0 && HexVal(v[2]) >= 0) { out[o++] = (char)(HexVal(v[1]) * 16 + HexVal(v[2])); v += 2; }
+			else out[o++] = *v;
+		}
+		out[o++] = '\r'; out[o++] = '\n';
+		User::Free(head); User::Free(line);
+		if (o + 512 >= cap) return 0;
+	}
+	return o;
+}
+
 static TContactItemId ImportL(const char *data, size_t len)
 {
-	TPtrC8 p((const TUint8 *)data, (TInt)len);
+	char *mk = (char *)User::Alloc(len + len / 4 + 64);
+	if (!mk) User::Leave(KErrNoMemory);
+	CleanupStack::PushL(TCleanupItem(FreeCell, mk));
+	size_t ml = MarkUtf8(data, len, mk, len + len / 4 + 64);
+	if (!ml) User::Leave(KErrTooBig);
+	TPtrC8 p((const TUint8 *)mk, (TInt)ml);
 	RDesReadStream rs(p);
 	CleanupClosePushL(rs);
 	TBool ok = EFalse;
@@ -184,7 +293,7 @@ static TContactItemId ImportL(const char *data, size_t len)
 	CleanupStack::PushL(TCleanupItem(DestroyItems, items));
 	if (!ok || items->Count() < 1) User::Leave(KErrCorrupt);
 	TContactItemId nid = (*items)[0]->Id();
-	CleanupStack::PopAndDestroy(2);   // the items (cleanup item), then the stream
+	CleanupStack::PopAndDestroy(3);   // the items (cleanup item), the stream, the marked text
 	return nid;
 }
 
@@ -232,4 +341,83 @@ phedav_local contacts_local(void)
 	l.remove = l_remove;
 	l.ack = l_ack;
 	return l;
+}
+
+/* ---------- self-test helper (TEST databases only, --db): create / edit / delete / list cards without recording a signature,
+   so the next sync sees them as local changes. Names are looked up in the exported vCard text (UTF-8 substring). ---------- */
+static TContactItemId FindByNameL(const char *name)
+{
+	const CContactIdArray *ids = g_db->SortedItemsL();
+	for (TInt i = 0; i < ids->Count(); i++) {
+		TContactItemId id = (*ids)[i];
+		if (id == g_db->OwnCardId() || !IsCardL(id)) continue;
+		ExportOneL(id);
+		TInt n = g_buf->Size();
+		char *t = (char *)User::Alloc(n + 1);
+		if (!t) User::Leave(KErrNoMemory);
+		TPtr8 d((TUint8 *)t, 0, n);
+		g_buf->Read(0, d, n);
+		t[n] = 0;
+		TBool hit = strstr(t, name) != NULL;      /* anywhere in the exported card (names with non-ASCII letters are quoted-printable there) */
+		User::Free(t);
+		if (hit) return id;
+	}
+	return KNullContactId;
+}
+
+static void SelfTestL(const char *op, const char *a, const char *b)
+{
+	if (!strcmp(op, "add")) {
+		char card[512];
+		sprintf(card, "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:%s\r\nN:%s;;;;\r\nTEL;TYPE=CELL:+4900000000\r\nEND:VCARD\r\n", a, a);
+		TContactItemId nid = ImportL(card, strlen(card));
+		printf("selftest: added \"%s\" as %d\n", a, (int)nid);
+	} else if (!strcmp(op, "edit")) {      // a = name to find, b = new family name (ASCII)
+		TContactItemId id = FindByNameL(a);
+		if (id == KNullContactId) { printf("selftest: edit: \"%s\" not found\n", a); return; }
+		CContactItem *it = g_db->OpenContactLX(id);
+		CleanupStack::PushL(it);
+		CContactItemFieldSet &fs = it->CardFields();
+		TInt pos = fs.Find(KUidContactFieldFamilyName);
+		if (pos < 0) User::Leave(KErrNotFound);
+		TBuf<64> nn;
+		nn.Copy(TPtrC8((const TUint8 *)b));
+		fs[pos].TextStorage()->SetTextL(nn);
+		g_db->CommitContactL(*it);
+		CleanupStack::PopAndDestroy(2);   // it, the lock record
+		printf("selftest: edited %d (\"%s\") family name -> \"%s\"\n", (int)id, a, b);
+	} else if (!strcmp(op, "del")) {
+		TContactItemId id = FindByNameL(a);
+		if (id == KNullContactId) { printf("selftest: del: \"%s\" not found\n", a); return; }
+		g_db->DeleteContactL(id);
+		printf("selftest: deleted %d (\"%s\")\n", (int)id, a);
+	} else if (!strcmp(op, "list")) {
+		const CContactIdArray *ids = g_db->SortedItemsL();
+		for (TInt i = 0; i < ids->Count(); i++) {
+			TContactItemId id = (*ids)[i];
+			if (id == g_db->OwnCardId() || !IsCardL(id)) continue;
+			ExportOneL(id);
+			TInt n = g_buf->Size();
+			char *t = (char *)User::Alloc(n + 1);
+			if (!t) User::Leave(KErrNoMemory);
+			TPtr8 d((TUint8 *)t, 0, n);
+			g_buf->Read(0, d, n);
+			t[n] = 0;
+			char line[300];
+			int k = 0;
+			for (const char *p = t; *p && k < 290; p++) { if (*p == 13) continue; line[k++] = (*p == 10) ? '|' : *p; }
+			line[k] = 0;
+			printf("selftest: card %d: %s\n", (int)id, line);      /* the exported vCard, UTF-8 bytes as stored */
+			User::Free(t);
+		}
+	} else {
+		printf("selftest: unknown op %s\n", op);
+	}
+}
+
+int contacts_selftest(const char *op, const char *a, const char *b)
+{
+	TRAPD(err, SelfTestL(op, a, b));
+	if (err) printf("selftest: %s failed %d\n", op, err);
+	return err;
 }

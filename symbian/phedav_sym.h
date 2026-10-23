@@ -28,11 +28,13 @@ void fsig_each(int (*cb)(void *ctx, const char *id, unsigned long sig), void *ct
 /* contacts.cpp */
 int contacts_open(const char *dbname);   /* NULL = the default (real) database */
 void contacts_close(void);
+int contacts_selftest(const char *op, const char *a, const char *b);   /* TEST db only: add:<name> edit:<name>:<newfamily> del:<name> list */
 phedav_local contacts_local(void);
 
 /* calendar.cpp: dbname = calendar file, e.g. c:phedavtest.cal (created if missing); NULL = the default calendar */
 int calendar_open(const char *dbname);
 void calendar_close(void);
+int calendar_selftest(const char *op, const char *a, const char *b);   /* TEST file only: add:<uid>:<summary> edit:<uid>:<summary> del:<uid> list */
 phedav_local calendar_local(void);
 
 #ifdef __cplusplus

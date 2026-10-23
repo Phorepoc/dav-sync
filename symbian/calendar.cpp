@@ -263,3 +263,40 @@ phedav_local calendar_local(void)
 	l.ack = l_ack;
 	return l;
 }
+
+/* ---------- self-test helper (TEST calendar files only, --db): add / edit / delete / list events by UID without recording a
+   signature, so the next sync sees local changes. ---------- */
+int calendar_selftest(const char *op, const char *a, const char *b)
+{
+	// add:<uid>:<summary>   edit:<uid>:<summary> (same: re-imports the UID with the new summary)   del:<uid>   list
+	if (!strcmp(op, "add") || !strcmp(op, "edit")) {
+		char ics[900];
+		sprintf(ics, "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//phedav selftest//EN\r\nBEGIN:VEVENT\r\nUID:%s\r\nDTSTAMP:20261023T100000Z\r\n"
+		             "DTSTART:20261110T090000Z\r\nDTEND:20261110T100000Z\r\nSUMMARY:%s\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n", a, b);
+		TBuf8<PHEDAV_ID_MAX> uid;
+		TRAPD(err, ImportL(ics, strlen(ics), uid));
+		printf("selftest: %s %s \"%s\" -> %d\n", op, a, b, err);
+		return err;
+	}
+	if (!strcmp(op, "del")) {
+		TRAPD(err, DeleteUidL(UidDes(a)));
+		printf("selftest: del %s -> %d\n", a, err);
+		return err;
+	}
+	if (!strcmp(op, "list")) {
+		TInt n = 0;
+		CCalIter *it = NULL;
+		TRAPD(err, it = CCalIter::NewL(*g_ses));
+		if (err) return err;
+		TRAPD(le, {
+			const TDesC8 *u = &it->FirstL();
+			while (u->Length() > 0) { printf("selftest: event %.*s\n", (int)u->Length(), (const char *)u->Ptr()); n++; u = &it->NextL(); }
+		});
+		(void)le;
+		delete it;
+		printf("selftest: %d events\n", (int)n);
+		return 0;
+	}
+	printf("selftest: unknown op %s\n", op);
+	return -1;
+}

@@ -121,3 +121,14 @@ Not run on a phone yet.
 - Calendar (`calendar.cpp`): one CalDAV resource = one UID group; local id = the iCalendar UID; `CCalIter` enumerates UIDs,
   `CCalEntryView::FetchL(uid, array)` + `CCalDataExchange::ExportL/ImportL(KUidVCalendar)`, `StoreL`, `DeleteL(CDesC8Array)`.
   Signature-based change detection, like the contacts adapter. Not run on a phone.
+
+## Notes from testing on an x86 Symbian image (QEMU)
+- **Text encoding.** The Contacts Model's Versit reads a property without `CHARSET` as 8-bit text, so a UTF-8 vCard 3.0 came out
+  double encoded. `contacts.cpp` adds `;CHARSET=UTF-8` to every line with non-ASCII bytes on import, reads the card as 2.1 (Versit
+  cuts a 3.0 value at the first comma) after dropping the `\,` escapes, and turns Versit's 2.1 quoted-printable export back into a
+  vCard 3.0 (UTF-8, `TYPE=`, commas escaped; servers built on vobject cut unescaped commas) before the upload. The device needs
+  `Z:\resource\charconv\basic.snm` (charconv.iby); without it Versit crashes on non-ASCII text.
+- **Connect.** Open C can answer `EINPROGRESS` on a socket where `O_NONBLOCK` could not be set; `plat.cpp` polls `connect()`.
+- **Self-test helper.** `--selftest "add:Name,edit:Name:NewFamily,del:Name,list"` (contacts; calendar: `add:uid:summary`,
+  `edit:uid:summary`, `del:uid`, `list`) changes the `--db` test database before the sync, without recording signatures, so the
+  sync sees real local changes. `--local-wins` sets the conflict policy to local (default: server wins).

@@ -253,11 +253,11 @@ static size_t ToV30(const char *in, size_t len, char *out, size_t cap)
 		memcpy(head, line, hlen); head[hlen] = 0;
 		char *save = NULL;
 		char *tok = head;
-		int first = 1;
+		int first = 1, texty = 0;
 		for (;;) {
 			char *semi = strchr(tok, ';');
 			if (semi) *semi = 0;
-			if (first) { size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; first = 0; }
+			if (first) { size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; first = 0; texty = !strcmp(tok, "NOTE") || !strcmp(tok, "FN"); }
 			else if (!strncmp(tok, "ENCODING=QUOTED-PRINTABLE", 25) || !strncmp(tok, "CHARSET=", 8)) { if (tok[0] == 'E') qp = 1; }
 			else if (strchr(tok, '=')) { out[o++] = ';'; size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; }
 			else if (*tok) { memcpy(out + o, ";TYPE=", 6); o += 6; size_t l = strlen(tok); memcpy(out + o, tok, l); o += l; }
@@ -268,6 +268,8 @@ static size_t ToV30(const char *in, size_t len, char *out, size_t cap)
 		out[o++] = ':';
 		for (const char *v = colon + 1; *v; v++) {
 			if (qp && *v == '=' && HexVal(v[1]) >= 0 && HexVal(v[2]) >= 0) { out[o++] = (char)(HexVal(v[1]) * 16 + HexVal(v[2])); v += 2; }
+			else if (*v == ',') { out[o++] = '\\'; out[o++] = ','; }          /* vCard 3.0 TEXT: servers (vobject) cut an unescaped comma */
+			else if (*v == ';' && texty) { out[o++] = '\\'; out[o++] = ';'; }
 			else out[o++] = *v;
 		}
 		out[o++] = '\r'; out[o++] = '\n';
@@ -282,8 +284,29 @@ static TContactItemId ImportL(const char *data, size_t len)
 	char *mk = (char *)User::Alloc(len + len / 4 + 64);
 	if (!mk) User::Leave(KErrNoMemory);
 	CleanupStack::PushL(TCleanupItem(FreeCell, mk));
-	size_t ml = MarkUtf8(data, len, mk, len + len / 4 + 64);
+	/* unfold first: a folded line (CRLF + one space, as servers wrap long values) must lose the space; Versit as 2.1 would keep it */
+	char *un = (char *)User::Alloc(len + 1);
+	if (!un) User::Leave(KErrNoMemory);
+	CleanupStack::PushL(TCleanupItem(FreeCell, un));
+	size_t ul = 0;
+	for (size_t r = 0; r < len; r++) {
+		if (data[r] == 13 && r + 2 < len && data[r + 1] == 10 && (data[r + 2] == ' ' || data[r + 2] == 9)) { r += 2; continue; }
+		if (data[r] == 10 && r + 1 < len && (data[r + 1] == ' ' || data[r + 1] == 9)) { r += 1; continue; }
+		un[ul++] = data[r];
+	}
+	size_t ml = MarkUtf8(un, ul, mk, len + len / 4 + 64);
 	if (!ml) User::Leave(KErrTooBig);
+	/* Versit's text parser cuts a vCard 3.0 value at the first comma (3.0 lists use commas) and keeps a backslash that escapes it:
+	   "Zurich\, x" came out as "Zurich\\". Read the card as 2.1 (same property syntax, no comma lists) and drop the escape of the comma. */
+	{
+		char *w = mk;
+		for (size_t r = 0; r < ml; r++) {
+			if (mk[r] == '\\' && r + 1 < ml && mk[r + 1] == ',') continue;
+			*w++ = mk[r];
+		}
+		ml = (size_t)(w - mk);
+		for (size_t r = 0; r + 11 <= ml; r++) if (!memcmp(mk + r, "VERSION:3.0", 11)) { memcpy(mk + r, "VERSION:2.1", 11); break; }
+	}
 	TPtrC8 p((const TUint8 *)mk, (TInt)ml);
 	RDesReadStream rs(p);
 	CleanupClosePushL(rs);
@@ -293,7 +316,7 @@ static TContactItemId ImportL(const char *data, size_t len)
 	CleanupStack::PushL(TCleanupItem(DestroyItems, items));
 	if (!ok || items->Count() < 1) User::Leave(KErrCorrupt);
 	TContactItemId nid = (*items)[0]->Id();
-	CleanupStack::PopAndDestroy(3);   // the items (cleanup item), the stream, the marked text
+	CleanupStack::PopAndDestroy(4);   // the items (cleanup item), the stream, the unfolded text, the marked text
 	return nid;
 }
 

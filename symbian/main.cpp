@@ -44,10 +44,12 @@ static int run(int argc, char **argv)
 	int r, kind, pick = 0, i;
 	const char *what = argc > 4 ? argv[4] : "contacts";
 	const char *filter = NULL, *dbname = NULL, *selftest = NULL;
+	int local_wins = 0;
 	int real_db = 0, cal;
 	for (i = 5; i < argc; i++) {
 		if (!strcmp(argv[i], "--db") && i + 1 < argc) dbname = argv[++i];
 		else if (!strcmp(argv[i], "--selftest") && i + 1 < argc) selftest = argv[++i];
+		else if (!strcmp(argv[i], "--local-wins")) local_wins = 1;
 		else if (!strcmp(argv[i], "--real-db")) real_db = 1;
 		else if (!strcmp(argv[i], "--filter") && i + 1 < argc) filter = argv[++i];
 		else { printf("unknown argument %s\n", argv[i]); return 2; }
@@ -94,6 +96,7 @@ static int run(int argc, char **argv)
 	if (selftest) {      /* --selftest "op:a[:b],op:a[:b],..." runs on the --db TEST database before the sync */
 		char ops[400], *p, *q;
 		if (!dbname) { printf("REFUSED: --selftest needs --db\n"); return 2; }
+		printf("selftest: ops \"%s\"\n", selftest);
 		strncpy(ops, selftest, sizeof ops - 1); ops[sizeof ops - 1] = 0;
 		for (p = ops; p && *p; p = q) {
 			char *a, *b = NULL;
@@ -105,6 +108,7 @@ static int run(int argc, char **argv)
 	store = fstore_store();
 	local = cal ? calendar_local() : contacts_local();
 	memset(&opt, 0, sizeof opt);
+	opt.conflict_policy = local_wins ? PHEDAV_USE_LOCAL : PHEDAV_USE_SERVER;
 	r = phedav_sync(c, &f->col[pick], &store, &local, &opt, &st);
 	printf("sync: result %d (http %d) mode=%s%s\n", r, c->status, st.mode, st.token_expired ? " [token expired]" : "");
 	printf("  down +%d ~%d -%d   up +%d ~%d -%d   conflicts=%d deferred=%d errors=%d   http requests=%d\n",

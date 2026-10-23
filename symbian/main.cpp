@@ -133,6 +133,29 @@ int main(int argc, char **argv)
 		sched = new CActiveScheduler;
 		if (sched) CActiveScheduler::Install(sched);
 	}
+	/* phedav --args <file>: the arguments come from a text file (whitespace separated; "#" starts a comment line) -- a launcher with a
+	   short command-line / list-file limit can then start it with one short line */
+	if (argc >= 3 && !strcmp(argv[1], "--args")) {
+		static char text[3000];
+		static char *av[64];
+		FILE *f = fopen(argv[2], "rb");
+		int n = 0, ac = 0;
+		char *p;
+		if (!f) { printf("cannot open the argument file %s\n", argv[2]); return 2; }
+		n = (int)fread(text, 1, sizeof text - 1, f);
+		fclose(f);
+		text[n] = 0;
+		av[ac++] = argv[0];
+		for (p = text; *p && ac < 63; ) {
+			while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
+			if (*p == '#') { while (*p && *p != '\n') p++; continue; }
+			if (!*p) break;
+			av[ac++] = p;
+			while (*p && *p != ' ' && *p != '\t' && *p != '\r' && *p != '\n') p++;
+			if (*p) *p++ = 0;
+		}
+		argc = ac; argv = av;
+	}
 	rc = run(argc, argv);
 	delete sched;
 	delete cleanup;

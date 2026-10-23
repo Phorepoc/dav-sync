@@ -140,7 +140,16 @@ static int cb_missing(void *ctx, const char *id, unsigned long sig)
 	unsigned long s;
 	TInt cnt = 0;
 	(void)sig;
-	if (SignatureOf(UidDes(id), s, cnt) == KErrNone && cnt == 0) {
+	/* a deletion is uploaded to the server, so be sure: the agenda server can answer "no entries" for a moment right after a
+	   previous run closed the file; ask up to 4 times, 300 ms apart, before believing it (seen once, evt-one deleted from Radicale) */
+	TInt serr = KErrNone, tries = 0;
+	for (; tries < 4; tries++) {
+		if (tries) User::After(300000);
+		serr = SignatureOf(UidDes(id), s, cnt);
+		if (serr != KErrNone || cnt > 0) break;
+	}
+	if (tries) printf("calendar: check %s -> err %d, %d entries after %d retries\n", id, (int)serr, (int)cnt, (int)tries);
+	if (serr == KErrNone && cnt == 0) {
 		TBuf8<PHEDAV_ID_MAX> b(UidDes(id));
 		gone->Append(b);
 	}

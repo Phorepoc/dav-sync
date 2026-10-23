@@ -7,6 +7,17 @@ Status: **working on a host**; the platform integration is a design note (`SYMBI
 No malloc, no OS calls in the core. The host provides a byte-stream transport and two small adapters (sync state, local
 database). Items stay opaque vCard 3.0/4.0 and iCalendar text; the platform layer converts them with its own APIs.
 
+## Quick start
+It is a library: you give it a byte-stream transport and two small adapters, and call `phedav_sync` on a collection. The host build in `test/` is a complete example (POSIX sockets, an in-memory
+database) and the quickest way to see it work against a real server:
+```
+make check                                         # unit tests (XML, HTTP, sync logic; 96 checks)
+docker run -d --rm --name radicale -p 5232:5232 tomsquest/docker-radicale     # any CalDAV / CardDAV server will do
+make build/integ && PHEDAV_URL=http://127.0.0.1:5232/ PHEDAV_USER=alice PHEDAV_PASS=secret ./build/integ both   # creates and deletes its own test collections
+```
+`sh test/run.sh` runs the whole integration suite (Radicale in Docker, ASan/UBSan build, and TLS with a CA and with a pinned certificate when mbedTLS 3.6 is in `.deps/mbedtls`).
+The API is in `include/phedav.h`; the Symbian port is described in `SYMBIAN.md`.
+
 ## What it does
 - **HTTP/1.1** over an abstract transport: keep-alive, Content-Length and chunked bodies, redirects (301/302/307/308 keep the
   method, 303 becomes GET; cross-origin and https-to-http are refused unless allowed), Basic auth (use app passwords).
@@ -70,5 +81,13 @@ and a work arena (about 150 bytes per server item of the collection plus 60 per 
 Digest and OAuth (Basic with app passwords only), CardDAV groups, scheduling (iTIP) and free-busy, WebDAV-Push, IPv6 literal
 URLs, HTTP/2. Tested servers: Radicale 3.5. Stalwart and Nextcloud are the next ones.
 
+## Security
+- Basic authentication only, so use **app passwords** and **https**: with the mbedTLS adapter the server certificate is verified against a CA bundle (with host name) or pinned by SHA-256;
+  there is no "insecure" switch. Redirects from https to http and across origins are refused unless the caller allows them.
+- The XML and HTTP parsers work in fixed buffers and are exercised by mutation tests under AddressSanitizer and UBSan on every change (`make fuzz`).
+- The core never allocates and never touches the OS, so a port cannot be surprised by hidden I/O. Credentials are only held in the caller's structures; the library does not store them.
+- Report vulnerabilities privately: see `SECURITY.md`.
+
 ## License
-Apache-2.0 (see `LICENSE`). The Radicale used in the tests is GPL and runs as an external server only.
+
+Apache-2.0 (see `LICENSE`; third-party notes in `NOTICE`). The Radicale used in the tests is GPL and runs as an external server only.

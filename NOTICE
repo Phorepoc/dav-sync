@@ -1,0 +1,10 @@
+phedav
+Copyright The Phorepoc Authors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE). Every source file carries an SPDX-License-Identifier header.
+
+Third-party software:
+- The core (src/, include/) is ours and has no dependencies: no malloc, no OS calls, no external XML or HTTP library.
+- Optional TLS adapter (src/phedav_mbedtls.c): links mbedTLS 3.6 (Apache-2.0 OR GPL-2.0-or-later; used under Apache-2.0). mbedTLS is not included in this repository: build it yourself (see README).
+- The Symbian port (symbian/) uses the platform's Open C (P.I.P.S.) libraries and the message / contacts / calendar APIs of the SDK it is built against; none of that is included.
+- Tests only (not part of the library): Radicale (GPL-3.0) runs as a separate server in a Docker container (test/Dockerfile.radicale); nothing of it is linked into phedav.

@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: Apache-2.0
+name: ci
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: Unit tests, plain and under ASan + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make check
+      - run: make fuzz
+
+  integration:
+    name: Integration against Radicale (plain HTTP, TLS with CA and pinned certificate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: mbedTLS 3.6 for the TLS adapter
+        run: |
+          git clone --depth 1 --branch v3.6.7 --recurse-submodules --shallow-submodules https://github.com/Mbed-TLS/mbedtls .deps/mbedtls
+          make -C .deps/mbedtls lib -j"$(nproc)"
+      - run: sh test/run.sh
+
+  arm:
+    name: Core compiles for ARM (Arm GNU Toolchain from the Phorepoc toolchain image)
+    runs-on: ubuntu-latest
+    container: ghcr.io/phorepoc/base:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "compile the core with arm-none-eabi-gcc (no OS, no allocator, so it must build freestanding)"
+        run: |
+          arm-none-eabi-gcc --version | head -1
+          for f in src/phedav_xml.c src/phedav_http.c src/phedav_dav.c src/phedav_sync.c; do
+            arm-none-eabi-gcc -std=c99 -Os -mcpu=cortex-a8 -ffreestanding -Wall -Wextra -Wpedantic -Iinclude -c "$f" -o "/tmp/$(basename "$f").o"
+          done

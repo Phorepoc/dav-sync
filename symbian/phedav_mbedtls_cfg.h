@@ -24,3 +24,4 @@
 #define MBEDTLS_NO_PLATFORM_ENTROPY          /* no /dev/urandom */
 #define MBEDTLS_ENTROPY_HARDWARE_ALT         /* mbedtls_hardware_poll() in plat.cpp */
 #define MBEDTLS_PLATFORM_MS_TIME_ALT         /* mbedtls_ms_time() in plat.cpp */
+#define MBEDTLS_NO_UDBL_DIVISION             /* no 128-bit division (__udivti3) on a 64-bit-limb build (the x32 test image): the call would hit an unresolved stub */

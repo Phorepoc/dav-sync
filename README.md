@@ -1,4 +1,6 @@
-# phedav
+# Phorepoc dav-sync
+
+Repository: `Phorepoc/dav-sync`. The library and its API keep the component name `phedav` (`phedav.h`, `phedav_sync`, `libphedav`).
 
 A small, portable C99 CalDAV / CardDAV sync core for old and unusual phones (a Symbian^3 phone, the Phorepoc OS), so they can
 sync contacts and calendars with any standard server: Radicale, Nextcloud, Stalwart, SabreDAV-based servers, or a personal hub.

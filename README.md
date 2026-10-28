@@ -6,7 +6,7 @@ address book and calendar in sync with a server you run yourself.
 
 It's plain C99, it never allocates memory, and it never calls the operating system directly. You give it a way to
 send and receive bytes, and two small adapters, one to keep its sync state and one for the phone's own contact or
-calendar database. That makes it easy to drop into unusual platforms.
+calendar database. That makes it easy to drop into legacy platforms.
 
 It works today on Linux against real servers. The Symbian side is designed but not written yet, and `SYMBIAN.md`
 explains the plan.

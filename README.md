@@ -1,7 +1,7 @@
 # dav-sync
 
 This is a small C library that syncs contacts and calendars with any standard CalDAV or CardDAV server, such as
-Radicale, Nextcloud or Stalwart. We wrote it so old phones, starting with Symbian^3 and Phorepoc, can keep their
+Radicale, Nextcloud or Stalwart. We wrote it so old phones, starting with Symbian^3 and Phorepoc OS, can keep their
 address book and calendar in sync with a server you run yourself.
 
 It's plain C99, it never allocates memory, and it never calls the operating system directly. You give it a way to

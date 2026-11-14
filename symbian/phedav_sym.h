@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 #ifndef PHEDAV_SYM_H
 #define PHEDAV_SYM_H
 #include "phedav.h"

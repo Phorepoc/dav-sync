@@ -54,6 +54,12 @@ free/busy, and HTTP/2. So far it's been tested against Radicale 3.5, with Stalwa
 - The library never stores your password. Only your own code holds it.
 - Please report vulnerabilities privately, as described in `SECURITY.md`.
 
-## License
+## Licensing
 
-Apache-2.0. The tests use Radicale, which is GPL, but only as a separate server.
+This is Phorepoc code, licensed under the [GNU Affero General Public License, version 3 only](LICENSE) (`AGPL-3.0-only`), with the [additional terms](ADDITIONAL-TERMS.md) its section 7 allows: keep the attribution "Phorepoc, founded by Kyriakos Bompotis" and the legal notices (also where your version shows notices, such as an About screen), and no rights to the Phorepoc names and logos ([TRADEMARKS.md](TRADEMARKS.md)). If you run a modified version for users over a network, AGPL section 13 asks you to offer them its source.
+
+The optional mbedTLS adapter links mbedTLS under its Apache-2.0 option; the tests use Radicale (GPL) only as a separate server.
+
+Phorepoc is dual-licensed. Commercial licences or licence exceptions (for example to ship it inside a closed product without the AGPL obligations) are available on request from the founder, Kyriakos Bompotis.
+
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for the licence grant they need.

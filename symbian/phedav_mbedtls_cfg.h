@@ -1,5 +1,5 @@
 /* Copyright The Phorepoc Authors
- * SPDX-License-Identifier: Apache-2.0 */
+ * SPDX-License-Identifier: AGPL-3.0-only */
 /* mbedTLS 3.6 configuration for the Open C build: the default configuration minus what the platform lacks or we do not need. */
 #include "mbedtls/mbedtls_config.h"
 

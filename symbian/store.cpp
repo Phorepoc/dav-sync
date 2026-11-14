@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // File-backed sync state under C:\data\phedav\. One text file per collection (name = FNV-1a of the collection href):
 //   M <tab> sync_token <tab> ctag             collection meta (last one wins)

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Copyright The Phorepoc Authors
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-only
 # Integration run on a Docker host: Radicale in a container (--cpus 1 --memory 512m), the ASan/UBSan test build in a gcc
 # container on the same private network. Everything is removed at the end.
 #   sh test/run.sh          plain HTTP run, then a TLS run (CA-verified and certificate-pinned) if .deps/mbedtls is built

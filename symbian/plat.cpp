@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Symbian platform glue for the phedav console exe (Open C / P.I.P.S.): log file, default access point, the raw TCP stream
 // (non-blocking connect and select() timeouts), optional TLS, and the mbedTLS entropy source.

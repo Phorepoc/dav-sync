@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // phedav_local for the phone's calendar: iCalendar import / export through CCalDataExchange (KUidVCalendar), entries through
 // CCalEntryView. The item is a UID group (a recurring event with its exceptions is several CCalEntry with one UID and is one

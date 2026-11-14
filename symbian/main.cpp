@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // phedav.exe -- CardDAV (and later CalDAV) sync client for a Symbian^3 phone. Console exe, user capabilities only.
 //   phedav.exe <url> <user> <password> [contacts|calendar] --db <file> | --real-db [--filter <name>]

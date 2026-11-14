@@ -1,5 +1,5 @@
 /* Copyright The Phorepoc Authors
- * SPDX-License-Identifier: Apache-2.0 */
+ * SPDX-License-Identifier: AGPL-3.0-only */
 /* Offline unit tests: XML parser, HTTP client (scripted transport), multistatus reader, helpers, and mutation runs. */
 #include "phedav.h"
 

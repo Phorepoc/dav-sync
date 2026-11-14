@@ -1,5 +1,5 @@
 /* Copyright The Phorepoc Authors
- * SPDX-License-Identifier: Apache-2.0 */
+ * SPDX-License-Identifier: AGPL-3.0-only */
 /*
  * Integration test against a live CalDAV / CardDAV server (Radicale, Stalwart, Nextcloud, ...).
  *   PHEDAV_URL=http://host:5232/ PHEDAV_USER=alice PHEDAV_PASS=secret ./build/integ [cal|card|both]

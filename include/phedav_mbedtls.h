@@ -1,5 +1,5 @@
 /* Copyright The Phorepoc Authors
- * SPDX-License-Identifier: Apache-2.0 */
+ * SPDX-License-Identifier: AGPL-3.0-only */
 
 /*
  * phedav_mbedtls -- adds TLS 1.2 / 1.3 (mbedTLS 3.6, an external dependency, not vendored) to a plain byte-stream provider and

@@ -1,10 +1,16 @@
 Phorepoc dav-sync (component name: phedav)
 Copyright The Phorepoc Authors
 
-Licensed under the Apache License, Version 2.0 (see LICENSE). Every source file carries an SPDX-License-Identifier header.
+Phorepoc code licensed under the GNU Affero General Public License, version 3 only (AGPL-3.0-only, LICENSE), with the additional terms in ADDITIONAL-TERMS.md (section 7(b) attributions, section 7(e) names and logos). Every source file carries an SPDX-License-Identifier header.
 
 Third-party software:
 - The core (src/, include/) is ours and has no dependencies: no malloc, no OS calls, no external XML or HTTP library.
 - Optional TLS adapter (src/phedav_mbedtls.c): links mbedTLS 3.6 (Apache-2.0 OR GPL-2.0-or-later; used under Apache-2.0). mbedTLS is not included in this repository: build it yourself (see README).
 - The Symbian port (symbian/) uses the platform's Open C (P.I.P.S.) libraries and the message / contacts / calendar APIs of the SDK it is built against; none of that is included.
 - Tests only (not part of the library): Radicale (GPL-3.0) runs as a separate server in a Docker container (test/Dockerfile.radicale); nothing of it is linked into phedav.
+
+Licensing. The Phorepoc code is AGPL-3.0-only with additional terms under its section 7 (ADDITIONAL-TERMS.md):
+the attribution "Phorepoc, founded by Kyriakos Bompotis" and these notices must be kept, also where a work based on
+it shows legal notices; no rights are granted to the Phorepoc names and logos (TRADEMARKS.md). It is dual-licensed:
+commercial licences are available from the founder (see README.md, "Licensing"). Third-party code keeps its own
+licence and header.

@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // Safety layer between the sync core and the platform adapters (contacts and calendar alike):
 //  * mass-delete guard: a sync that would delete a lot (or everything the state remembers) is refused for deletions, because a

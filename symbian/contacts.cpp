@@ -1,5 +1,5 @@
 // Copyright The Phorepoc Authors
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: AGPL-3.0-only
 //
 // phedav_local for the phone's contacts: vCard import / export through CContactDatabase (Versit), change detection by
 // signature. Local id = TContactItemId in decimal.

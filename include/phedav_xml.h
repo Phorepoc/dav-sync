@@ -1,5 +1,5 @@
 /* Copyright The Phorepoc Authors
- * SPDX-License-Identifier: Apache-2.0 */
+ * SPDX-License-Identifier: AGPL-3.0-only */
 
 /*
  * phedav_xml -- a small push (streaming) XML parser, enough for WebDAV multistatus bodies.
